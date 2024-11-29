@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Anchor
   - Flashlight
+  - Lighter
   layers:
   - Default
   - TransparentFX
