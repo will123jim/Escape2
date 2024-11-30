@@ -3,32 +3,43 @@ using UnityEngine;
 public class PolaroidCamera : MonoBehaviour
 {
     [SerializeField] private Camera puzzleCamera; // Reference to the in-game camera
-    [SerializeField] private RenderTexture renderTexture; //RenderTexture for captuting the photo
-    [SerializeField] private GameObject polaroidPrefab; // Polaroid prefab
-    [SerializeField] private Transform photoSpawnPoint; //Where the polaroid will appear
-    [SerializeField] private GameObject markerPrefab; //marker prefab for debugging
-    public Camera playerCamera; // reference to the players main camera
-    public AudioSource revealSound;
+    [SerializeField] private RenderTexture renderTexture; // RenderTexture for displaying the camera view
+    [SerializeField] private GameObject polaroidPrefab; // Prefab for the Polaroid photo
+    [SerializeField] private Transform photoSpawnPoint; // Where the Polaroid will appear
+    [SerializeField] private GameObject markerPrefab; // Marker prefab for debugging
 
-    public float detectionRange = 10f; // adjustable in the inspector
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    public Camera playerCamera; // Reference to the player's main camera
+    public AudioSource revealSound; // Sound to play when puzzle is solved
+    public float detectionRange = 10f; // Adjustable in the Inspector
+
+    private void Start()
+    {
+        if (puzzleCamera != null)
+        {
+            puzzleCamera.targetTexture = renderTexture;
+        }
+        else
+        {
+            Debug.LogError("Puzzle camera not assigned!");
+        }
+    }
+
     public void TakePhoto()
     {
-        //Render the camera view to the RenderTexture
+        // Render the camera view to the RenderTexture
         puzzleCamera.targetTexture = renderTexture;
-        Texture2D capturedPhoto = new Texture2D (renderTexture.width, renderTexture.height, TextureFormat.RGB24, false);
+        Texture2D capturedPhoto = new Texture2D(renderTexture.width, renderTexture.height, TextureFormat.RGB24, false);
         RenderTexture.active = renderTexture;
 
         puzzleCamera.Render();
 
-        //Read the RenderTexture into the Texture2D
+        // Read the RenderTexture into the Texture2D
         capturedPhoto.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
         capturedPhoto.Apply();
 
         RenderTexture.active = null;
-        puzzleCamera.targetTexture = null;
 
-        //Check if the camera is focused on the correct object
+        // Check if the camera is focused on the correct object
         if (CheckTargetInPhoto())
         {
             GeneratePolaroid(capturedPhoto);
@@ -39,55 +50,57 @@ public class PolaroidCamera : MonoBehaviour
         }
     }
 
-private bool CheckTargetInPhoto()
-{
-    Ray ray = puzzleCamera.ScreenPointToRay(new Vector3(renderTexture.width / 2, renderTexture.height / 2, 0));
-
-
-    
-    if (Physics.Raycast(ray, out RaycastHit hit, detectionRange))
+    private bool CheckTargetInPhoto()
     {
-        Debug.Log($"Raycast hit object: {hit.point}, Object: {hit.collider.name}");
-        if (markerPrefab != null)
-        {
-            GameObject markerInstance = Instantiate(markerPrefab, hit.point, Quaternion.identity);
-            Debug.Log("Marker paced at position: {hit.point}");
-        }
-       // cjeck if the hit object has the puzzleobject component
-       PuzzleObject puzzleObject = hit.collider.GetComponent<PuzzleObject>();
+        // Raycast from the center of the RenderTexture
+        Ray ray = puzzleCamera.ScreenPointToRay(new Vector3(renderTexture.width / 2, renderTexture.height / 2, 0));
 
-        if (puzzleObject != null && puzzleObject.isTargetObject)
+        if (Physics.Raycast(ray, out RaycastHit hit, detectionRange))
         {
-            Debug.Log("Correct puzzleitem detected");
-            return true;
+            Debug.Log($"Raycast hit object: {hit.collider.name}, Position: {hit.point}");
+
+            if (markerPrefab != null)
+            {
+                Instantiate(markerPrefab, hit.point, Quaternion.identity);
+            }
+
+            // Check if the hit object is the correct puzzle object
+            PuzzleObject puzzleObject = hit.collider.GetComponent<PuzzleObject>();
+            if (puzzleObject != null && puzzleObject.isTargetObject)
+            {
+                Debug.Log("Correct puzzle item detected!");
+                return true;
+            }
         }
-        else
-        {
-        Debug.Log("object detected but tag doesnt match");
-        }
+
+        Debug.Log("Object detected, but it's not the correct target.");
+        return false;
     }
-    
-    return false;
-}
-private void GeneratePolaroid(Texture2D photoTexture)
-{
-    GameObject polaroid = Instantiate(polaroidPrefab, photoSpawnPoint.position, photoSpawnPoint.rotation);
-    Renderer renderer = polaroid.GetComponentInChildren<Renderer>();
-    if (renderer != null)
+
+    private void GeneratePolaroid(Texture2D photoTexture)
     {
-        renderer.material.mainTexture = photoTexture;
-    }
-     if (revealSound != null)
-        {
-            revealSound.Play(); // play the sound when the puzzle is solved
-        }
-    Debug.Log("Polaroid photo generated!");
-}
-public void DropCamera()
-{
-    puzzleCamera.gameObject.SetActive(false);
-    playerCamera.gameObject.SetActive(true);
-    Debug.Log("Switched back to player camera");
-}
+        // Spawn the Polaroid at the designated location
+        GameObject polaroid = Instantiate(polaroidPrefab, photoSpawnPoint.position, photoSpawnPoint.rotation);
+        Renderer renderer = polaroid.GetComponentInChildren<Renderer>();
 
+        if (renderer != null)
+        {
+            renderer.material.mainTexture = photoTexture; // Apply the photo texture to the Polaroid
+        }
+
+        if (revealSound != null)
+        {
+            revealSound.Play(); // Play the reveal sound
+        }
+
+        Debug.Log("Polaroid photo generated!");
+    }
+
+    public void DropCamera()
+    {
+        // Switch back to the player's main camera
+        puzzleCamera.gameObject.SetActive(false);
+        playerCamera.gameObject.SetActive(true);
+        Debug.Log("Switched back to player camera.");
+    }
 }
