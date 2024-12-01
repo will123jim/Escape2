@@ -3,44 +3,60 @@ using UnityEngine.XR.Interaction.Toolkit;
 
 public class SpinGlobe : MonoBehaviour
 {
-    private bool isBeingGrabbed = false;        // Tracks if the globe is currently grabbed
-    private Transform interactorTransform;     // The transform of the controller grabbing the globe
-    private Vector3 lastInteractorRotation;    // Tracks the last rotation of the interactor
+    private Transform interactorTransform; // The transform of the interactor grabbing the globe
+    private Vector3 lastInteractorRotation; // To track the last rotation of the interactor
 
     [Header("Rotation Settings")]
-    public float rotationSpeed = 10f;          // Adjust for desired spin sensitivity
+    public float rotationSpeed = 5f; // Sensitivity of globe spinning
+
+    private Rigidbody rb;
+
+    void Start()
+    {
+        rb = GetComponent<Rigidbody>();
+
+        // Ensure Rigidbody is properly configured
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.constraints = RigidbodyConstraints.FreezePosition; // Freeze position but allow rotation
+        }
+    }
+
+    public void OnGrab(SelectEnterEventArgs args)
+    {
+        // Get the interactor's transform
+        interactorTransform = args.interactorObject.transform;
+
+        // Initialize rotation tracking
+        if (interactorTransform != null)
+        {
+            lastInteractorRotation = interactorTransform.eulerAngles;
+        }
+
+        Debug.Log($"Globe grabbed by: {args.interactorObject.transform.name}");
+    }
+
+    public void OnRelease(SelectExitEventArgs args)
+    {
+        interactorTransform = null;
+
+        Debug.Log($"Globe released by: {args.interactorObject.transform.name}");
+    }
 
     void Update()
     {
-        if (isBeingGrabbed && interactorTransform != null)
+        if (interactorTransform != null)
         {
-            // Calculate the rotation delta based on the interactor's movement
+            // Calculate the change in rotation
             Vector3 currentInteractorRotation = interactorTransform.eulerAngles;
             Vector3 rotationDelta = currentInteractorRotation - lastInteractorRotation;
 
-            // Apply rotation around the Y-axis (horizontal spin)
+            // Apply rotation to the globe (Y-axis spin)
             transform.Rotate(Vector3.up, rotationDelta.y * rotationSpeed, Space.World);
 
             // Store the current rotation for the next frame
             lastInteractorRotation = currentInteractorRotation;
         }
     }
-
-    // Called when the globe is grabbed
-    public void OnGrab(SelectEnterEventArgs args)
-    {
-        isBeingGrabbed = true;
-        interactorTransform = args.interactorObject.transform;
-
-        // Initialize the last rotation to the current controller's rotation
-        lastInteractorRotation = interactorTransform.eulerAngles;
-    }
-
-    // Called when the globe is released
-    public void OnRelease(SelectExitEventArgs args)
-    {
-        isBeingGrabbed = false;
-        interactorTransform = null;
-    }
 }
-

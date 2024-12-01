@@ -7,6 +7,18 @@ TagManager:
   - Anchor
   - Flashlight
   - Lighter
+  - SnapPoint
+  - Snap_FL
+  - Snap_AU
+  - Snap_IT
+  - Snap_NY
+  - Snap_CA
+  - NY
+  - CA
+  - IT
+  - FL
+  - AU
+  - Slot
   layers:
   - Default
   - TransparentFX
@@ -14,8 +26,8 @@ TagManager:
   - 
   - Water
   - UI
-  - 
-  - 
+  - Painting
+  - SnapPoint
   - 
   - 
   - 
